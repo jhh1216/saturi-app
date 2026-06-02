@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 
 class SimilarityCalculator {
   static int _levenshtein(String a, String b) {
@@ -26,6 +27,9 @@ class SimilarityCalculator {
   static String _normalize(String text) {
     return text.replaceAll(RegExp(r'[^가-힣a-zA-Z0-9]'), '').toLowerCase();
   }
+
+  @visibleForTesting
+  static int levenshteinDistance(String a, String b) => _levenshtein(a, b);
 
   /// 원문과 인식된 텍스트를 비교해 0~100 점수 반환
   static int calculate(String original, String recognized) {

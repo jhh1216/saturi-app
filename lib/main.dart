@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'data/dialect_data.dart';
 import 'screens/region_detail_page.dart';
+import 'screens/splash_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -16,7 +17,11 @@ class SaturiApp extends StatelessWidget {
       title: '사투리',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
-      home: const RegionGridPage(),
+      initialRoute: '/',
+      routes: {
+        '/': (_) => const SplashScreen(),
+        '/home': (_) => const RegionGridPage(),
+      },
     );
   }
 }
