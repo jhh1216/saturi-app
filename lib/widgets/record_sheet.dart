@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import '../data/dialect_data.dart';
@@ -20,10 +21,10 @@ class RecordSheet extends StatefulWidget {
   });
 
   @override
-  State<RecordSheet> createState() => _RecordSheetState();
+  State<RecordSheet> createState() => RecordSheetState();
 }
 
-class _RecordSheetState extends State<RecordSheet> {
+class RecordSheetState extends State<RecordSheet> {
   final SpeechToText _speech = SpeechToText();
   _State _state = _State.idle;
   String _recognized = '';
@@ -43,10 +44,21 @@ class _RecordSheetState extends State<RecordSheet> {
   }
 
   Future<void> _init() async {
-    final ok = await _speech.initialize(
-      onError: (_) { if (mounted) setState(() => _state = _State.idle); },
-    );
-    if (mounted) setState(() => _ready = ok);
+    try {
+      final ok = await _speech.initialize(
+        onError: (_) { if (mounted) setState(() => _state = _State.idle); },
+      );
+      if (mounted) setState(() => _ready = ok);
+    } catch (_) {
+      // 테스트 환경 등 STT 플랫폼 미지원 시 무시
+    }
+  }
+
+  @visibleForTesting
+  void simulateRecognition(String recognizedText) {
+    _state = _State.recording;
+    _recognized = recognizedText;
+    _finish();
   }
 
   Future<void> _start() async {
