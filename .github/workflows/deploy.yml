@@ -8,13 +8,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.22.0'
-          channel: 'stable'
-      - run: flutter pub get
-      - run: flutter build web --release
-      - uses: peaceiris/actions-gh-pages@v3
+
+      - name: Install Flutter
+        run: |
+          git clone https://github.com/flutter/flutter.git -b stable --depth 1 ~/flutter
+          echo "$HOME/flutter/bin" >> $GITHUB_PATH
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Flutter build web
+        run: flutter build web --release
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./build/web
