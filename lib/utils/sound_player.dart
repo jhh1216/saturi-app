@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
+import 'app_settings.dart';
 
 class SoundPlayer {
   // 사인파 WAV 생성 (여러 주파수 합성)
@@ -68,10 +69,14 @@ class SoundPlayer {
   }
 
   /// C-E-G 장화음: 밝고 기분 좋은 성공음
-  static Future<void> playSuccess() =>
-      _play(_generateWav([523.25, 659.25, 783.99], 0.8));
+  static Future<void> playSuccess() async {
+    if (!AppSettings().soundEnabled) return;
+    await _play(_generateWav([523.25, 659.25, 783.99], 0.8));
+  }
 
   /// 낮은 단음: 아쉬운 실패음
-  static Future<void> playFail() =>
-      _play(_generateWav([220.0, 246.94], 0.65));
+  static Future<void> playFail() async {
+    if (!AppSettings().soundEnabled) return;
+    await _play(_generateWav([220.0, 246.94], 0.65));
+  }
 }

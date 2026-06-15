@@ -4,6 +4,8 @@ import 'package:speech_to_text/speech_to_text.dart';
 import '../data/dialect_data.dart';
 import '../utils/similarity.dart';
 import '../utils/sound_player.dart';
+import '../utils/stats_service.dart';
+import '../utils/tts_service.dart';
 import 'wave_ring.dart';
 
 enum _State { idle, recording, done }
@@ -91,6 +93,7 @@ class RecordSheetState extends State<RecordSheet> {
       _score = score;
       _state = _State.done;
     });
+    StatsService().record(widget.regionName, widget.sentence.dialect, score);
     if (score >= 70) {
       SoundPlayer.playSuccess();
     } else {
@@ -199,7 +202,15 @@ class RecordSheetState extends State<RecordSheet> {
               ),
             ],
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 20),
+
+          // 들어보기 버튼 (recording 중에는 숨김)
+          if (_state != _State.recording)
+            _ListenButton(
+              text: widget.sentence.dialect,
+              accentColor: widget.accentColor,
+            ),
+          SizedBox(height: _state == _State.recording ? 28 : 20),
 
           Container(height: 1, color: Colors.white.withValues(alpha: 0.08)),
           const SizedBox(height: 28),
@@ -456,6 +467,129 @@ class _ResultSection extends StatelessWidget {
                 borderRadius: BorderRadius.circular(14),
               ),
               elevation: 0,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── 들어보기 버튼 ──────────────────────────────────────────────────────────────
+
+class _ListenButton extends StatefulWidget {
+  final String text;
+  final Color accentColor;
+
+  const _ListenButton({required this.text, required this.accentColor});
+
+  @override
+  State<_ListenButton> createState() => _ListenButtonState();
+}
+
+class _ListenButtonState extends State<_ListenButton> {
+  bool _playing = false;
+
+  @override
+  void dispose() {
+    TtsService().stop();
+    super.dispose();
+  }
+
+  Future<void> _toggle() async {
+    if (_playing) {
+      await TtsService().stop();
+      if (mounted) setState(() => _playing = false);
+    } else {
+      if (mounted) setState(() => _playing = true);
+      await TtsService().speak(
+        widget.text,
+        onDone: () {
+          if (mounted) setState(() => _playing = false);
+        },
+      );
+    }
+  }
+
+  Future<void> _speakSlow() async {
+    if (_playing) return;
+    if (mounted) setState(() => _playing = true);
+    await TtsService().speak(
+      widget.text,
+      rate: 0.55,
+      onDone: () {
+        if (mounted) setState(() => _playing = false);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // 천천히 듣기
+        GestureDetector(
+          onTap: _playing ? null : _speakSlow,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.07),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.snooze_rounded,
+                    color: Colors.white.withValues(alpha: _playing ? 0.3 : 0.7),
+                    size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  '천천히',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: _playing ? 0.3 : 0.7),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        // 보통 속도 듣기
+        GestureDetector(
+          onTap: _toggle,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 9),
+            decoration: BoxDecoration(
+              color: _playing
+                  ? widget.accentColor.withValues(alpha: 0.25)
+                  : widget.accentColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                  color: widget.accentColor.withValues(alpha: _playing ? 0.6 : 0.35)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _playing ? Icons.stop_rounded : Icons.volume_up_rounded,
+                  color: widget.accentColor,
+                  size: 17,
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  _playing ? '재생 중...' : '들어보기',
+                  style: TextStyle(
+                    color: widget.accentColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
           ),
         ),

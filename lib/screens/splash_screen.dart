@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -12,13 +13,15 @@ class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   late final AnimationController _logoController;
   late final AnimationController _textController;
-  late final AnimationController _dotsController;
+  late final AnimationController _buttonController;
 
   late final Animation<double> _logoScale;
   late final Animation<double> _logoOpacity;
   late final Animation<double> _textFade;
   late final Animation<Offset> _textSlide;
   late final Animation<double> _taglineFade;
+  late final Animation<double> _buttonFade;
+  late final Animation<Offset> _buttonSlide;
 
   @override
   void initState() {
@@ -32,10 +35,10 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _dotsController = AnimationController(
+    _buttonController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
-    )..repeat();
+      duration: const Duration(milliseconds: 600),
+    );
 
     _logoScale = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
@@ -61,6 +64,15 @@ class _SplashScreenState extends State<SplashScreen>
         curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
       ),
     );
+    _buttonFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _buttonController, curve: Curves.easeIn),
+    );
+    _buttonSlide = Tween<Offset>(
+      begin: const Offset(0, 0.4),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _buttonController, curve: Curves.easeOutCubic),
+    );
 
     _startAnimations();
   }
@@ -70,19 +82,23 @@ class _SplashScreenState extends State<SplashScreen>
     _logoController.forward();
     await Future.delayed(const Duration(milliseconds: 500));
     _textController.forward();
-    await Future.delayed(const Duration(milliseconds: 1800));
-    if (mounted) _navigateToHome();
+    await Future.delayed(const Duration(milliseconds: 900));
+    if (mounted) _buttonController.forward();
   }
 
   void _navigateToHome() {
-    Navigator.of(context).pushReplacementNamed('/home');
+    if (AuthService().isLoggedIn) {
+      Navigator.of(context).pushNamed('/home');
+    } else {
+      Navigator.of(context).pushNamed('/auth');
+    }
   }
 
   @override
   void dispose() {
     _logoController.dispose();
     _textController.dispose();
-    _dotsController.dispose();
+    _buttonController.dispose();
     super.dispose();
   }
 
@@ -143,12 +159,43 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
             const Spacer(flex: 3),
-            // 로딩 점 애니메이션
+            // 시작하기 버튼
             AnimatedBuilder(
-              animation: _dotsController,
-              builder: (context, child) => _BouncingDots(progress: _dotsController.value),
+              animation: _buttonController,
+              builder: (context, child) => FadeTransition(
+                opacity: _buttonFade,
+                child: SlideTransition(
+                  position: _buttonSlide,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _navigateToHome,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF5B8DEF),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          '시작하기',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 48),
           ],
         ),
       ),
@@ -229,36 +276,3 @@ class _AppLogo extends StatelessWidget {
   }
 }
 
-// ── 바운싱 로딩 점 ─────────────────────────────────────────────────────────────
-
-class _BouncingDots extends StatelessWidget {
-  final double progress;
-
-  const _BouncingDots({required this.progress});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(3, (i) {
-        final phase = (progress - i * 0.2).clamp(0.0, 1.0);
-        final bounce = (phase < 0.5 ? phase * 2 : (1 - phase) * 2);
-        final color = kRegionColors[i];
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 5),
-          child: Transform.translate(
-            offset: Offset(0, -8 * bounce),
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.7),
-                shape: BoxShape.circle,
-              ),
-            ),
-          ),
-        );
-      }),
-    );
-  }
-}
